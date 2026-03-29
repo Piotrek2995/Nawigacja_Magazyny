@@ -1,2 +1,2 @@
 # Aplikacja do nawigacji w magazynach
-Nawigacja_Magazyny to aplikacja mobilna wsmopagająca logistyczne procesy w magazynach zarówno tych ogromnych jak i mniejszych, wykorzystywująca wizję komputerową i algorytmy nawigacyjne
+Nawigacja_Magazyny to aplikacja mobilna wsmopagająca logistyczne procesy w magazynach zarówno tych ogromnych jak i mniejszych, wykorzystywująca wizję komputerową i algorytmy nawigacyjne. Opiera się na ona na wykrywaniu kamerą kodów umieszczonych w danych miejscach, wyznaczaniu dokładnej pozycji względem ich i optymalizacji rozmieszczenia asortymentu w magazynie, analizując trasę jaką pokonuje pojazd.
