@@ -22,7 +22,7 @@ data class PoseUiState(
 object MarkerMapRepository {
     // ID markera -> pozycja markera w mapie i orientacja (yaw) względem osi mapy.
     val markerMap: Map<Int, MarkerMapEntry> = listOf(
-        MarkerMapEntry(id = 2, location = "A3", x = 10.5, y = 3.2, yawDeg = 0.0),
+        MarkerMapEntry(id = 2, location = "A3", x = 1e0.5, y = 3.2, yawDeg = 0.0),
         MarkerMapEntry(id = 42, location = "B1", x = 2.0, y = 7.8, yawDeg = 90.0)
     ).associateBy { it.id }
 }
