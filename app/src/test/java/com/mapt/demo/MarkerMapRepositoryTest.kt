@@ -12,7 +12,7 @@ class MarkerMapRepositoryTest {
         val room = MarkerMapRepository.roomConfig
 
         assertNotNull(marker)
-        assertEquals("A3", marker?.location)
+        assertEquals("A4", marker?.location)
         assertTrue((marker?.x ?: 0.0) in 0.8..(room.widthMeters - 0.8))
         assertTrue((marker?.y ?: 0.0) in 0.8..(room.heightMeters - 0.8))
     }

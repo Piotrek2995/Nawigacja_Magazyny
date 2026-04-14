@@ -31,7 +31,7 @@ object MarkerMapRepository {
 
     private val marker2RandomPosition = MarkerMapEntry(
         id = 2,
-        location = "A3",
+        location = "A4",
         x = Random.nextDouble(from = 0.8, until = roomConfig.widthMeters - 0.8),
         y = Random.nextDouble(from = 0.8, until = roomConfig.heightMeters - 0.8),
         yawDeg = 0.0
