@@ -53,3 +53,4 @@ Dla uzyskania najlepszej dokładności:
 *   Marker powinien być płaski (nie pognieciony).
 *   Oświetlenie powinno być równomierne.
 *   Parametry kamery w funkcji `estimateRelativePosition` są przybliżone. Dla profesjonalnych zastosowań zaleca się przeprowadzenie kalibracji kamery konkretnego urządzenia.
+*  Witam
