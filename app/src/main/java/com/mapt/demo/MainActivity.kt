@@ -10,9 +10,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,7 +32,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
@@ -118,7 +124,7 @@ fun ArucoScreen(
                 ArucoCameraView(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(420.dp),
+                        .height(260.dp),
                     arucoEngine = arucoEngine,
                     onPoseDetected = onPoseDetected
                 )
@@ -130,6 +136,18 @@ fun ArucoScreen(
                 .fillMaxWidth()
                 .padding(16.dp),
             state = poseUiState
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        RoomMapCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp),
+            state = poseUiState,
+            markerMap = MarkerMapRepository.markerMap,
+            roomConfig = MarkerMapRepository.roomConfig
         )
     }
 }
@@ -212,9 +230,69 @@ private fun CenterMessage(text: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(420.dp),
+            .height(260.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(text = text, textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+private fun RoomMapCard(
+    modifier: Modifier = Modifier,
+    state: PoseUiState,
+    markerMap: Map<Int, MarkerMapEntry>,
+    roomConfig: RoomMapConfig
+) {
+    Card(modifier = modifier) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "Mapa sali")
+
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1.8f)
+                    .padding(top = 12.dp)
+            ) {
+                val padding = 18.dp.toPx()
+                val roomLeft = padding
+                val roomTop = padding
+                val roomWidthPx = size.width - 2 * padding
+                val roomHeightPx = size.height - 2 * padding
+                val roomBottom = roomTop + roomHeightPx
+
+                drawRect(
+                    color = Color(0xFF607D8B),
+                    topLeft = Offset(roomLeft, roomTop),
+                    size = Size(roomWidthPx, roomHeightPx),
+                    style = Stroke(width = 4f)
+                )
+
+                fun worldToCanvas(xMeters: Double, yMeters: Double): Offset {
+                    val normalizedX = (xMeters / roomConfig.widthMeters).toFloat().coerceIn(0f, 1f)
+                    val normalizedY = (yMeters / roomConfig.heightMeters).toFloat().coerceIn(0f, 1f)
+                    return Offset(
+                        x = roomLeft + normalizedX * roomWidthPx,
+                        y = roomBottom - normalizedY * roomHeightPx
+                    )
+                }
+
+                markerMap.values.forEach { marker ->
+                    drawCircle(
+                        color = Color(0xFF2E7D32),
+                        radius = 9f,
+                        center = worldToCanvas(marker.x, marker.y)
+                    )
+                }
+
+                if (state.markerId != null && state.worldX != null && state.worldY != null) {
+                    drawCircle(
+                        color = Color(0xFFD32F2F),
+                        radius = 12f,
+                        center = worldToCanvas(state.worldX, state.worldY)
+                    )
+                }
+            }
+        }
     }
 }

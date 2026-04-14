@@ -1,5 +1,7 @@
 package com.mapt.demo
 
+import kotlin.random.Random
+
 data class MarkerMapEntry(
     val id: Int,
     val location: String,
@@ -19,10 +21,25 @@ data class PoseUiState(
     val status: String = "Szukam markera ArUco..."
 )
 
+data class RoomMapConfig(
+    val widthMeters: Double,
+    val heightMeters: Double
+)
+
 object MarkerMapRepository {
+    val roomConfig = RoomMapConfig(widthMeters = 12.0, heightMeters = 8.0)
+
+    private val marker2RandomPosition = MarkerMapEntry(
+        id = 2,
+        location = "A3",
+        x = Random.nextDouble(from = 0.8, until = roomConfig.widthMeters - 0.8),
+        y = Random.nextDouble(from = 0.8, until = roomConfig.heightMeters - 0.8),
+        yawDeg = 0.0
+    )
+
     // ID markera -> pozycja markera w mapie i orientacja (yaw) względem osi mapy.
     val markerMap: Map<Int, MarkerMapEntry> = listOf(
-        MarkerMapEntry(id = 2, location = "A3", x = 1e05, y = 3.2, yawDeg = 0.0),
+        marker2RandomPosition,
         MarkerMapEntry(id = 42, location = "B1", x = 2.0, y = 7.8, yawDeg = 90.0)
     ).associateBy { it.id }
 }
