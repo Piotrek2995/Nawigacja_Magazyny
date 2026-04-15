@@ -37,8 +37,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -158,7 +158,7 @@ private fun ArucoCameraView(
     arucoEngine: ArucoEngine,
     onPoseDetected: (PoseUiState) -> Unit
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val latestCallback = rememberUpdatedState(onPoseDetected)
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var cameraViewRef by remember { mutableStateOf<JavaCameraView?>(null) }
@@ -296,3 +296,67 @@ private fun RoomMapCard(
         }
     }
 }
+
+@Preview(showBackground = true, name = "PoseInfoCard - wykryto marker")
+@Composable
+private fun PoseInfoCardPreviewDetected() {
+    DemoTheme(dynamicColor = false) {
+        PoseInfoCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            state = PoseUiState(
+                markerId = 42,
+                location = "B1",
+                worldX = 2.35,
+                worldY = 6.90,
+                distanceMeters = 1.27,
+                status = "Wykryto marker"
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "PoseInfoCard - brak detekcji")
+@Composable
+private fun PoseInfoCardPreviewSearching() {
+    DemoTheme(dynamicColor = false) {
+        PoseInfoCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            state = PoseUiState()
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "RoomMapCard")
+@Composable
+private fun RoomMapCardPreview() {
+    DemoTheme(dynamicColor = false) {
+        RoomMapCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            state = PoseUiState(
+                markerId = 2,
+                location = "A4",
+                worldX = 7.10,
+                worldY = 3.60,
+                distanceMeters = 0.92,
+                status = "Wykryto marker"
+            ),
+            markerMap = MarkerMapRepository.markerMap,
+            roomConfig = MarkerMapRepository.roomConfig
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "CenterMessage")
+@Composable
+private fun CenterMessagePreview() {
+    DemoTheme(dynamicColor = false) {
+        CenterMessage("Brak uprawnienia do kamery")
+    }
+}
+
