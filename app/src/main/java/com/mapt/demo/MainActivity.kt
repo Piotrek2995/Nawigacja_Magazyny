@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.SurfaceView
+import java.util.Locale
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -57,6 +58,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import com.mapt.demo.network.ArucoFeedbackRepository
 import com.mapt.demo.ui.theme.DemoTheme
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -73,6 +75,10 @@ import org.opencv.android.OpenCVLoader
 
 class MainActivity : ComponentActivity() {
     private var poseState by mutableStateOf(PoseUiState())
+    private var geometryFeedbackMessage by mutableStateOf("API: oczekiwanie na geometrię ArUco...")
+    private val arucoFeedbackRepository = ArucoFeedbackRepository()
+    private var lastGeometrySignature: String? = null
+    private var lastFeedbackSentAtMs: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,11 +92,76 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         openCvReady = openCvReady,
                         poseUiState = poseState,
-                        onPoseDetected = { poseState = it }
+                        apiFeedbackText = geometryFeedbackMessage,
+                        onPoseDetected = { pose ->
+                            poseState = pose
+                            sendGeometryFeedbackIfNeeded(pose)
+                        }
                     )
                 }
             }
         }
+    }
+
+    private fun sendGeometryFeedbackIfNeeded(pose: PoseUiState) {
+        val markerId = pose.markerId ?: return
+        val worldX = pose.worldX ?: return
+        val worldY = pose.worldY ?: return
+        val distance = pose.distanceMeters ?: return
+        val cameraX = pose.cameraXInMarker ?: return
+        val cameraZ = pose.cameraZInMarker ?: return
+
+        val signature = buildString {
+            append(markerId)
+            append(":")
+            append("%.2f".format(Locale.US, worldX))
+            append(":")
+            append("%.2f".format(Locale.US, worldY))
+            append(":")
+            append("%.2f".format(Locale.US, distance))
+        }
+        val now = System.currentTimeMillis()
+        val shouldSend =
+            signature != lastGeometrySignature || now - lastFeedbackSentAtMs >= FEEDBACK_MIN_INTERVAL_MS
+        if (!shouldSend) return
+
+        lastGeometrySignature = signature
+        lastFeedbackSentAtMs = now
+        geometryFeedbackMessage = "API: wysyłanie geometrii..."
+
+        arucoFeedbackRepository.sendGeometryFeedback(
+            markerId = markerId,
+            location = pose.location,
+            worldX = worldX,
+            worldY = worldY,
+            distanceMeters = distance,
+            cameraXInMarker = cameraX,
+            cameraZInMarker = cameraZ,
+            onSuccess = { response ->
+                val message = response.message?.takeIf { it.isNotBlank() } ?: "odebrano feedback"
+                val qualityPart = response.qualityScore?.let {
+                    " | quality=%.2f".format(Locale.US, it)
+                } ?: ""
+                val correctionPart =
+                    if (response.correctedX != null && response.correctedY != null) {
+                        " | korekta=(%.2f, %.2f)".format(
+                            Locale.US,
+                            response.correctedX,
+                            response.correctedY
+                        )
+                    } else {
+                        ""
+                    }
+                geometryFeedbackMessage = "API: $message$qualityPart$correctionPart"
+            },
+            onError = { error ->
+                geometryFeedbackMessage = "API błąd: $error"
+            }
+        )
+    }
+
+    companion object {
+        private const val FEEDBACK_MIN_INTERVAL_MS = 1500L
     }
 }
 
@@ -99,6 +170,7 @@ fun ArucoScreen(
     modifier: Modifier = Modifier,
     openCvReady: Boolean,
     poseUiState: PoseUiState,
+    apiFeedbackText: String,
     onPoseDetected: (PoseUiState) -> Unit
 ) {
     val context = LocalContext.current
@@ -229,7 +301,8 @@ fun ArucoScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxSize(),
-                state = poseUiState
+                state = poseUiState,
+                apiFeedbackText = apiFeedbackText
             )
 
             RoomMapCard(
@@ -304,7 +377,7 @@ private fun ArucoCameraView(
 }
 
 @Composable
-private fun PoseInfoCard(modifier: Modifier = Modifier, state: PoseUiState) {
+private fun PoseInfoCard(modifier: Modifier = Modifier, state: PoseUiState, apiFeedbackText: String) {
     MinimalPanel(modifier = modifier) {
         Text(
             text = state.status,
@@ -327,6 +400,13 @@ private fun PoseInfoCard(modifier: Modifier = Modifier, state: PoseUiState) {
 
         Text(
             text = "X: ${state.worldX?.let { "%.2f".format(it) } ?: "-"}, Y: ${state.worldY?.let { "%.2f".format(it) } ?: "-"}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp)
+        )
+
+        Text(
+            text = apiFeedbackText,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 6.dp)
@@ -572,6 +652,7 @@ private fun PoseInfoCardPreviewDetected() {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
+            apiFeedbackText = "API: odebrano feedback",
             state = PoseUiState(
                 markerId = 42,
                 location = "B1",
@@ -592,6 +673,7 @@ private fun PoseInfoCardPreviewSearching() {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
+            apiFeedbackText = "API: oczekiwanie na geometrię ArUco...",
             state = PoseUiState()
         )
     }
