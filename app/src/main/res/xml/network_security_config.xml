@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext (HTTP) to localhost and development servers -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">10.66.17.23</domain>
+        <domain includeSubdomains="true">10.192.190.5</domain>
+        <domain includeSubdomains="true">10.222.81.5</domain>
+    </domain-config>
+    <!-- For production, all other traffic requires HTTPS -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">*.example.com</domain>
+    </domain-config>
+</network-security-config>
+
