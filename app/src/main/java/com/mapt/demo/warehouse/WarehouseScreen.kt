@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -92,9 +93,9 @@ fun WarehouseScreen(
             contentAlignment = Alignment.Center
         ) {
             when {
-                !openCvReady -> CenterText("OpenCV nie zostal zainicjalizowany")
+                !openCvReady -> CenterText("OpenCV nie został zainicjalizowany")
                 !hasCameraPermission -> CenterText("Brak uprawnienia do kamery")
-                arucoEngine == null -> CenterText("Silnik ArUco niedostepny")
+                arucoEngine == null -> CenterText("Silnik ArUco niedostępny")
                 else -> CameraPreview(
                     modifier = Modifier.fillMaxSize(),
                     onFrame = { frame ->
@@ -176,7 +177,7 @@ private fun EventLogPanel(modifier: Modifier = Modifier, events: List<WarehouseE
 }
 
 @Composable
-private fun Panel(modifier: Modifier = Modifier, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun Panel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
