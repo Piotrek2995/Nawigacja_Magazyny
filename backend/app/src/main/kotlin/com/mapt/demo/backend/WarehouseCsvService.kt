@@ -10,9 +10,10 @@ import java.util.concurrent.atomic.AtomicInteger
 
 @Service
 class WarehouseCsvService(
-    @Value("\${warehouse.csv.path:events.csv}") private val csvPath: String
+    @param:Value("\${warehouse.csv.path:events.csv}") private val csvPath: String
 ) {
     private val lock = Any()
+    // Licznik jest per-sesja; po restarcie plik może zawierać więcej wierszy niż licznik.
     private val counter = AtomicInteger(0)
     private val header = "czas;iso;typ;towar;lokalizacja"
     private val timeFmt = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
@@ -42,7 +43,7 @@ class WarehouseCsvService(
                 }
                 append(line)
                 append("\n")
-            })
+            }, Charsets.UTF_8)
             return counter.incrementAndGet()
         }
     }

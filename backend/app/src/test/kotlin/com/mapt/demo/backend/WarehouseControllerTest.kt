@@ -33,6 +33,7 @@ class WarehouseControllerTest {
 
         val log = controller.log()
         assertEquals(2, log.size)
-        assertEquals("PUT_DOWN", log[0].type)   // najnowsze pierwsze
+        assertEquals("PUT_DOWN", log[0].type)     // najnowsze pierwsze
+        assertEquals("PICKED_UP", log[1].type)    // starsze drugie
     }
 }
