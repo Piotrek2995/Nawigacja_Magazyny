@@ -13,32 +13,27 @@ class WarehouseTracker(
 
     private val itemMarkers = markers.values.filter { it.role == MarkerRole.ITEM }
 
+    /**
+     * Przetwarza jedną klatkę. UWAGA: limity czasowe obecności są oceniane wyłącznie
+     * w momencie wywołania — aby zdarzenie ZŁOŻONO (PUT_DOWN) na pewno się pojawiło,
+     * trzeba wywołać onFrame przynajmniej raz po upływie absenceTtlMs. Pętla kamery
+     * ~30 fps spełnia ten warunek w normalnej pracy.
+     */
     fun onFrame(detectedIds: Set<Int>, nowMs: Long): List<WarehouseEvent> {
-        // 1) Aktualizuj biezaca lokalizacje z dowolnego widocznego markera lokalizacji.
+        // 1) Aktualizuj biezaca lokalizacje i czas widzenia towarow jednym przejsciem.
         detectedIds.forEach { id ->
-            val marker = markers[id] ?: return@forEach
-            if (marker.role == MarkerRole.LOCATION) {
-                currentLocationLabel = marker.label
+            when (markers[id]?.role) {
+                MarkerRole.LOCATION -> currentLocationLabel = markers[id]?.label
+                MarkerRole.ITEM -> itemLastSeenMs[id] = nowMs
+                null -> Unit
             }
         }
 
-        // 2) Odswiez czas ostatniego widzenia towarow.
-        detectedIds.forEach { id ->
-            if (markers[id]?.role == MarkerRole.ITEM) {
-                itemLastSeenMs[id] = nowMs
-            }
-        }
-
-        // 3) Ocen obecnosc kazdego znanego towaru z histereza i emituj zdarzenia.
+        // 2) Ocen obecnosc kazdego znanego towaru z histereza i emituj zdarzenia.
         val emitted = mutableListOf<WarehouseEvent>()
         itemMarkers.forEach { item ->
-            val lastSeen = itemLastSeenMs[item.id]
             val wasPresent = itemPresent[item.id] ?: false
-            val isPresent = when {
-                lastSeen == null -> false
-                wasPresent -> (nowMs - lastSeen) <= absenceTtlMs
-                else -> (nowMs - lastSeen) <= presenceTtlMs
-            }
+            val isPresent = isItemPresent(item.id, nowMs)
 
             if (isPresent && !wasPresent) {
                 emitted += pushEvent(
@@ -55,8 +50,10 @@ class WarehouseTracker(
     }
 
     fun snapshot(nowMs: Long): WarehouseUiState {
+        // Obecnosc liczona wzgledem nowMs, by podglad nie pokazywal nieaktualnych
+        // towarow, gdy onFrame nie byl wolany od jakiegos czasu (np. pauza kamery).
         val present = itemMarkers
-            .filter { itemPresent[it.id] == true }
+            .filter { isItemPresent(it.id, nowMs) }
             .map { it.label }
         return WarehouseUiState(
             currentLocation = currentLocationLabel,
@@ -64,6 +61,20 @@ class WarehouseTracker(
             recentEvents = recentEvents.toList(),
             status = currentLocationLabel?.let { "Strefa: $it" } ?: "Szukam markera lokalizacji..."
         )
+    }
+
+    /**
+     * Histereza obecnosci: towar pozostaje obecny dopoki nie minie absenceTtlMs od
+     * ostatniego widzenia; nieobecny staje sie obecny, gdy widziano go w presenceTtlMs.
+     */
+    private fun isItemPresent(itemId: Int, nowMs: Long): Boolean {
+        val lastSeen = itemLastSeenMs[itemId] ?: return false
+        val wasPresent = itemPresent[itemId] ?: false
+        return if (wasPresent) {
+            (nowMs - lastSeen) <= absenceTtlMs
+        } else {
+            (nowMs - lastSeen) <= presenceTtlMs
+        }
     }
 
     private fun pushEvent(event: WarehouseEvent): WarehouseEvent {
