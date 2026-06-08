@@ -93,6 +93,46 @@ class ArucoEngine(
         )
     }
 
+    /**
+     * Wykrywa wszystkie markery w klatce, rysuje ich ramki i etykiety ID,
+     * zwraca zbior wykrytych ID. Uzywane przez tryb magazynowy.
+     */
+    fun detectMarkerIds(rgba: Mat): Set<Int> {
+        val gray = Mat()
+        Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
+        val result = detectWithFallback(gray)
+        gray.release()
+
+        if (result == null) {
+            drawStatus(rgba, "Szukam markerow...")
+            return emptySet()
+        }
+
+        val ids = mutableSetOf<Int>()
+        for (i in 0 until result.ids.rows()) {
+            ids.add(result.ids.get(i, 0)[0].toInt())
+        }
+
+        drawDetectedCorners(rgba, result.corners)
+        for (i in result.corners.indices) {
+            val points = extractCorners(result.corners[i]) ?: continue
+            val id = result.ids.get(i, 0)[0].toInt()
+            Imgproc.putText(
+                rgba,
+                "ID=$id",
+                points[0],
+                Imgproc.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                Scalar(0.0, 255.0, 0.0, 255.0),
+                2
+            )
+        }
+
+        result.ids.release()
+        result.corners.forEach { it.release() }
+        return ids
+    }
+
     private fun detectWithFallback(gray: Mat): DetectResult? {
         var compatibilityErrorType: Int? = null
 
