@@ -79,6 +79,9 @@ class MainActivity : ComponentActivity() {
     private val arucoFeedbackRepository = ArucoFeedbackRepository()
     private var lastGeometrySignature: String? = null
     private var lastFeedbackSentAtMs: Long = 0L
+    private var appMode by mutableStateOf(AppMode.NAVIGATION)
+    private var warehouseApiStatus by mutableStateOf("API: oczekiwanie na zdarzenia magazynowe...")
+    private val warehouseEventRepository = com.mapt.demo.network.WarehouseEventRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,16 +91,28 @@ class MainActivity : ComponentActivity() {
         setContent {
             DemoTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    ArucoScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        openCvReady = openCvReady,
-                        poseUiState = poseState,
-                        apiFeedbackText = geometryFeedbackMessage,
-                        onPoseDetected = { pose ->
-                            poseState = pose
-                            sendGeometryFeedbackIfNeeded(pose)
+                    Column(modifier = Modifier.padding(innerPadding)) {
+                        ModeToggle(
+                            mode = appMode,
+                            onSelect = { appMode = it }
+                        )
+                        when (appMode) {
+                            AppMode.NAVIGATION -> ArucoScreen(
+                                openCvReady = openCvReady,
+                                poseUiState = poseState,
+                                apiFeedbackText = geometryFeedbackMessage,
+                                onPoseDetected = { pose ->
+                                    poseState = pose
+                                    sendGeometryFeedbackIfNeeded(pose)
+                                }
+                            )
+                            AppMode.WAREHOUSE -> com.mapt.demo.warehouse.WarehouseScreen(
+                                openCvReady = openCvReady,
+                                apiStatusText = warehouseApiStatus,
+                                onEvent = { event -> sendWarehouseEvent(event) }
+                            )
                         }
-                    )
+                    }
                 }
             }
         }
@@ -157,6 +172,22 @@ class MainActivity : ComponentActivity() {
             onError = { error ->
                 geometryFeedbackMessage = "API błąd: $error"
             }
+        )
+    }
+
+    private fun sendWarehouseEvent(event: com.mapt.demo.warehouse.WarehouseEvent) {
+        warehouseApiStatus = "API: wysyłanie zdarzenia ${event.itemLabel}..."
+        warehouseEventRepository.sendEvent(
+            itemLabel = event.itemLabel,
+            locationLabel = event.locationLabel,
+            type = event.type.name,
+            capturedAtEpochMs = event.epochMs,
+            onSuccess = { response ->
+                val msg = response.message?.takeIf { it.isNotBlank() } ?: "zapisano"
+                val total = response.totalEvents?.let { " | razem=$it" } ?: ""
+                warehouseApiStatus = "API: $msg$total"
+            },
+            onError = { error -> warehouseApiStatus = "API błąd: $error" }
         )
     }
 
@@ -314,6 +345,27 @@ fun ArucoScreen(
                 roomConfig = MarkerMapRepository.roomConfig
             )
         }
+    }
+}
+
+@Composable
+private fun ModeToggle(mode: AppMode, onSelect: (AppMode) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        androidx.compose.material3.FilterChip(
+            selected = mode == AppMode.NAVIGATION,
+            onClick = { onSelect(AppMode.NAVIGATION) },
+            label = { Text("Nawigacja") }
+        )
+        androidx.compose.material3.FilterChip(
+            selected = mode == AppMode.WAREHOUSE,
+            onClick = { onSelect(AppMode.WAREHOUSE) },
+            label = { Text("Magazyn") }
+        )
     }
 }
 
@@ -708,3 +760,5 @@ private fun CenterMessagePreview() {
         CenterMessage("Brak uprawnienia do kamery")
     }
 }
+
+enum class AppMode { NAVIGATION, WAREHOUSE }
