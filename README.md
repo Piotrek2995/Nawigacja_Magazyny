@@ -11,6 +11,58 @@ Nawigacja_Magazyny to aplikacja mobilna wspomagająca logistyczne procesy w maga
 
 ---
 
+## 📦 Tryb magazynowy (PoC rotacji towaru)
+
+Aplikacja ma dwa tryby przełączane chipami u góry ekranu:
+
+*   **Nawigacja** — estymacja pozycji kamery względem markerów ArUco + mapa GPS (opisana powyżej).
+*   **Magazyn** — śledzenie rotacji towaru zgodnie z PoC „Optymalizacja rozmieszczenia asortymentu”.
+
+### Markery ArUco (wydrukuj 5 sztuk: ID 0–4)
+
+| ID | Rola | Etykieta |
+|----|------|----------|
+| 0  | Lokalizacja | Loc-A1 |
+| 1  | Lokalizacja | Loc-B2 |
+| 2  | Lokalizacja | Loc-C3 |
+| 3  | Towar | Item-001 |
+| 4  | Towar | Item-002 |
+
+Markery lokalizacji (0–2) powieś na ścianach, markery towaru (3–4) naklej na kartony.
+Rejestr ról i etykiet znajduje się w `app/src/main/java/com/mapt/demo/warehouse/WarehouseModels.kt`
+(`WarehouseRegistry`).
+
+### Jak działa
+
+Kamera telefonu w jednej klatce widzi marker lokalizacji i marker towaru:
+
+*   **bieżąca strefa** = ostatnio widziany marker lokalizacji („Wózek jest w strefie A1”),
+*   pojawienie się markera towaru w kadrze → zdarzenie **POBRANO** w bieżącej strefie,
+*   zniknięcie markera towaru (po ~1,5 s histerezy) → zdarzenie **ZŁOŻONO** w bieżącej strefie.
+
+Zdarzenia trafiają na żywo do logu na ekranie i są wysyłane do backendu, który dopisuje je do
+pliku `events.csv` (kolumny: `czas;iso;typ;towar;lokalizacja`). Ścieżkę pliku można zmienić
+właściwością `warehouse.csv.path` w `backend/app/src/main/resources/application.properties`.
+
+**Endpointy backendu:**
+```
+POST /api/v1/warehouse/event   # dopisuje zdarzenie do CSV, zwraca licznik
+GET  /api/v1/warehouse/log     # ostatnie zdarzenia (najnowsze pierwsze)
+```
+
+### Test (scenariusz „Krok 4” z PoC)
+
+1.  Uruchom backend (`start-backend.bat`) i zainstaluj aplikację (`.\gradlew.bat :app:installDebug`).
+2.  W aplikacji wybierz chip **Magazyn**.
+3.  Pokaż kamerze marker ID 0 (Loc-A1) → strefa „Loc-A1”.
+4.  Pokaż marker ID 3 (Item-001) → w logu pojawia się `POBRANO Item-001 @ Loc-A1`.
+5.  Zabierz marker ID 3 na ponad 1,5 s → `ZŁOŻONO Item-001 @ Loc-A1`.
+6.  Pokaż ID 1 (Loc-B2), potem ID 3 → `POBRANO Item-001 @ Loc-B2`.
+7.  Przewoź kartony z towarami między strefami przez 10–15 min, po czym otwórz `events.csv`
+    i zweryfikuj zarejestrowane pobrania/złożenia ze znacznikami czasu.
+
+---
+
 ## 🛠️ Instrukcja konfiguracji krok po kroku
 
 ### 1. Przygotowanie markerów
