@@ -17,7 +17,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("String", "ARUCO_API_BASE_URL", "\"http://10.222.81.5:8080/\"")
+        buildConfigField("String", "ARUCO_API_BASE_URL", "\"http://10.78.21.5:8080/\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
