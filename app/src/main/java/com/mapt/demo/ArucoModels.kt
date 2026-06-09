@@ -1,7 +1,5 @@
 package com.mapt.demo
 
-import kotlin.random.Random
-
 data class MarkerMapEntry(
     val id: Int,
     val location: String,
@@ -27,20 +25,17 @@ data class RoomMapConfig(
 )
 
 object MarkerMapRepository {
-    val roomConfig = RoomMapConfig(widthMeters = 12.0, heightMeters = 8.0)
-
-    private val marker2RandomPosition = MarkerMapEntry(
-        id = 2,
-        location = "A4",
-        x = Random.nextDouble(from = 0.8, until = roomConfig.widthMeters - 0.8),
-        y = Random.nextDouble(from = 0.8, until = roomConfig.heightMeters - 0.8),
-        yawDeg = 0.0
-    )
+    // Pomieszczenie 3 m (szerokość, oś X) x 6 m (długość, oś Y).
+    val roomConfig = RoomMapConfig(widthMeters = 3.0, heightMeters = 6.0)
 
     // ID markera -> pozycja markera w mapie i orientacja (yaw) względem osi mapy.
+    // 5 markerów ArUco (ID 0-4) rozmieszczonych wzdłuż ścian pomieszczenia 3 x 6 m.
     val markerMap: Map<Int, MarkerMapEntry> = listOf(
-        marker2RandomPosition,
-        MarkerMapEntry(id = 42, location = "B1", x = 2.0, y = 7.8, yawDeg = 90.0)
+        MarkerMapEntry(id = 0, location = "A1", x = 0.5, y = 0.5, yawDeg = 0.0),
+        MarkerMapEntry(id = 1, location = "A2", x = 2.5, y = 0.5, yawDeg = 0.0),
+        MarkerMapEntry(id = 2, location = "B1", x = 1.5, y = 3.0, yawDeg = 0.0),
+        MarkerMapEntry(id = 3, location = "C1", x = 0.5, y = 5.5, yawDeg = 0.0),
+        MarkerMapEntry(id = 4, location = "C2", x = 2.5, y = 5.5, yawDeg = 0.0)
     ).associateBy { it.id }
 }
 

@@ -7,14 +7,22 @@ import org.junit.Test
 
 class MarkerMapRepositoryTest {
     @Test
-    fun marker2_should_exist_and_be_inside_room_bounds() {
-        val marker = MarkerMapRepository.markerMap[2]
+    fun room_should_be_3_by_6_meters() {
+        val room = MarkerMapRepository.roomConfig
+        assertEquals(3.0, room.widthMeters, 0.0)
+        assertEquals(6.0, room.heightMeters, 0.0)
+    }
+
+    @Test
+    fun all_five_markers_id_0_to_4_should_exist_and_be_inside_room_bounds() {
         val room = MarkerMapRepository.roomConfig
 
-        assertNotNull(marker)
-        assertEquals("A4", marker?.location)
-        assertTrue((marker?.x ?: 0.0) in 0.8..(room.widthMeters - 0.8))
-        assertTrue((marker?.y ?: 0.0) in 0.8..(room.heightMeters - 0.8))
+        for (id in 0..4) {
+            val marker = MarkerMapRepository.markerMap[id]
+            assertNotNull("Brak markera o ID=$id", marker)
+            assertTrue("Marker $id poza osią X", (marker?.x ?: -1.0) in 0.0..room.widthMeters)
+            assertTrue("Marker $id poza osią Y", (marker?.y ?: -1.0) in 0.0..room.heightMeters)
+        }
     }
 }
 
